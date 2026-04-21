@@ -1,63 +1,82 @@
 const { Telegraf } = require('telegraf');
 const fetch = require('node-fetch');
+const fs = require('fs');
+const path = require('path');
 
-// ========== CẤU HÌNH - SỬA 2 DÒNG NÀY ==========
+// ========== CẤU HÌNH ==========
 const BOT_TOKEN = '8457659379:AAHP3K3owb_yl6hQTk7y9cQBJgH2gv9u_U8';
-const FB_ACCESS_TOKEN = 'EAAGNO4a7r2wBRRpFXyrhjQSUszefCKT1cEICmtGNe3AH9ryzBRKycJOLUQDOHQ0zQdt2uEzlgT0Ye5k4wV4LfEwAkxYh6QyWZCRq64tDTEu1OCOLZAeytxLKafFStmZAVw4edZA1vB9OB1e6SpDTSjkb9AVJWLZBaaM5MejBdSf1VRtAmIyXJHQ8bgqK9zDy8eQZDZD';
-// =============================================
+// Token sẽ được đọc từ file token.txt (giống file tokenEAAD6V7.txt trong code gốc)
+// =============================
 
 const bot = new Telegraf(BOT_TOKEN);
 
-// Hàm gọi API Facebook với cấu hình an toàn hơn
-async function callFacebookAPI(url) {
+// Đường dẫn file lưu token (mô phỏng tokenEAAD6V7.txt)
+// Trong Netlify Functions, chúng ta lưu trong /tmp vì đây là thư mục có quyền ghi
+const TOKEN_FILE = '/tmp/tokenEAAD6V7.txt';
+
+// Hàm đọc token từ file
+function getTokenFromFile() {
     try {
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            timeout: 15000 // 15 giây timeout
-        });
-        
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        console.error('Fetch error:', error.message);
-        return { error: { message: 'Không thể kết nối đến Facebook. Vui lòng thử lại sau.' } };
+        if (fs.existsSync(TOKEN_FILE)) {
+            return fs.readFileSync(TOKEN_FILE, 'utf8').trim();
+        }
+    } catch (e) {
+        console.error('Lỗi đọc file token:', e);
+    }
+    return null;
+}
+
+// Hàm lưu token vào file
+function saveTokenToFile(token) {
+    try {
+        fs.writeFileSync(TOKEN_FILE, token, 'utf8');
+        return true;
+    } catch (e) {
+        console.error('Lỗi ghi file token:', e);
+        return false;
     }
 }
 
-// Hàm kiểm tra thông tin Facebook
-async function checkFacebookInfo(uid) {
-    // Phiên bản API cũ hơn để tăng khả năng tương thích
-    const fields = 'id,name,first_name,last_name,gender,locale,link,verified,birthday,relationship_status,hometown,location,work,education,about,bio,quotes,website';
+// Hàm gọi API Facebook - mô phỏng cách dùng file_get_contents trong PHP
+async function callFacebookAPI(url) {
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        return { error: { message: 'Không thể kết nối đến máy chủ Facebook' } };
+    }
+}
+
+// Hàm check info - chuyển từ apiCheck.php
+async function checkFacebookInfo(uid, token) {
+    if (!uid || !token) {
+        return { error: 'Thiếu UID hoặc Token' };
+    }
     
-    const url = `https://graph.facebook.com/v13.0/${uid}?fields=${fields}&access_token=${FB_ACCESS_TOKEN}`;
+    // Code gốc dùng các trường này
+    const fields = 'id,name,first_name,last_name,gender,locale,link,updated_time,verified,about,birthday,email,education,favorite_athletes,favorite_teams,hometown,inspirational_people,install_type,interested_in,is_guest_user,languages,location,meeting_for,political,quotes,relationship_status,religion,significant_other,sports,website,work';
+    
+    const url = `https://graph.facebook.com/v13.0/${uid}?fields=${fields}&access_token=${token}`;
     
     const data = await callFacebookAPI(url);
     
     if (data.error) {
+        // Thông báo lỗi giống code gốc
+        if (data.error.message.includes('token')) {
+            return { error: 'Token Facebook không hợp lệ hoặc đã hết hạn' };
+        }
+        if (data.error.message.includes('Unsupported get request')) {
+            return { error: 'UID không tồn tại hoặc không thể truy cập' };
+        }
         return { error: data.error.message };
     }
     
     return data;
 }
 
-// Hàm lấy ảnh đại diện
-async function getFacebookAvatar(uid) {
-    const url = `https://graph.facebook.com/v13.0/${uid}/picture?type=large&redirect=false&access_token=${FB_ACCESS_TOKEN}`;
-    
-    const data = await callFacebookAPI(url);
-    
-    if (data.error) {
-        return { error: data.error.message };
-    }
-    
-    return { url: data.data.url };
-}
-
-// Hàm chuyển đổi link sang UID
-async function convertToUid(input) {
+// Hàm convert ID - chuyển từ convertID.php
+async function convertToUid(input, token) {
     let cleanInput = input.trim();
     
     // Nếu là UID số
@@ -65,11 +84,16 @@ async function convertToUid(input) {
         return { uid: cleanInput };
     }
     
-    // Trích xuất username từ link
+    // Trích xuất username từ link (giống code gốc)
     let username = cleanInput;
+    
+    // Xóa http:// hoặc https://
+    username = username.replace(/^https?:\/\//, '');
+    // Xóa www.
+    username = username.replace(/^www\./, '');
+    // Lấy phần sau facebook.com/ hoặc fb.com/
     const patterns = [
-        /facebook\.com\/(?:profile\.php\?id=)?(\d+)/i,
-        /facebook\.com\/([^/?&\s]+)/i,
+        /facebook\.com\/(?:profile\.php\?id=)?([^/?&\s]+)/i,
         /fb\.com\/([^/?&\s]+)/i,
         /fb\.me\/([^/?&\s]+)/i
     ];
@@ -84,11 +108,11 @@ async function convertToUid(input) {
     
     // Nếu không phải số, gọi API để lấy ID
     if (!/^\d+$/.test(username)) {
-        const url = `https://graph.facebook.com/v13.0/${username}?access_token=${FB_ACCESS_TOKEN}`;
+        const url = `https://graph.facebook.com/v13.0/${username}?access_token=${token}`;
         const data = await callFacebookAPI(url);
         
         if (data.error) {
-            return { error: data.error.message };
+            return { error: 'Không thể lấy UID. Vui lòng kiểm tra lại link hoặc token' };
         }
         
         return { uid: data.id };
@@ -97,230 +121,228 @@ async function convertToUid(input) {
     return { uid: username };
 }
 
-// Hàm format thông tin
+// Hàm lấy avatar
+async function getFacebookAvatar(uid, token) {
+    const url = `https://graph.facebook.com/v13.0/${uid}/picture?type=large&redirect=false&access_token=${token}`;
+    const data = await callFacebookAPI(url);
+    
+    if (data.error) {
+        return { error: data.error.message };
+    }
+    
+    return { url: data.data.url };
+}
+
+// Hàm format thông tin - giống cách hiển thị trong code gốc
 function formatUserInfo(data) {
-    let result = `📋 **THÔNG TIN FACEBOOK**\n\n`;
+    let result = `📋 THÔNG TIN FACEBOOK\n`;
+    result += `──────────────────\n`;
+    result += `🆔 ID: ${data.id || 'Không có'}\n`;
+    result += `👤 Tên: ${data.name || 'Không có'}\n`;
     
-    result += `🆔 **ID:** \`${data.id || 'Không có'}\`\n`;
-    result += `👤 **Tên:** ${data.name || 'Không có'}\n`;
-    result += `📛 **Họ:** ${data.last_name || 'Không có'}\n`;
-    result += `📛 **Tên:** ${data.first_name || 'Không có'}\n`;
-    
-    if (data.verified) {
-        result += `✅ **Tick xanh:** Có\n`;
-    }
-    
+    if (data.first_name) result += `📛 Tên: ${data.first_name}\n`;
+    if (data.last_name) result += `📛 Họ: ${data.last_name}\n`;
     if (data.gender) {
-        let gender = data.gender;
-        if (gender === 'male') gender = 'Nam';
-        else if (gender === 'female') gender = 'Nữ';
-        result += `⚥ **Giới tính:** ${gender}\n`;
+        let gender = data.gender === 'male' ? 'Nam' : (data.gender === 'female' ? 'Nữ' : data.gender);
+        result += `⚥ Giới tính: ${gender}\n`;
     }
-    
-    if (data.locale) result += `🌐 **Ngôn ngữ:** ${data.locale}\n`;
-    if (data.birthday) result += `🎂 **Sinh nhật:** ${data.birthday}\n`;
-    
-    if (data.relationship_status) {
-        const statusMap = {
-            'Single': 'Độc thân',
-            'In a relationship': 'Đang hẹn hò',
-            'Engaged': 'Đã đính hôn',
-            'Married': 'Đã kết hôn',
-            'It\'s complicated': 'Phức tạp'
-        };
-        result += `💑 **Mối quan hệ:** ${statusMap[data.relationship_status] || data.relationship_status}\n`;
-    }
-    
-    if (data.hometown) result += `🏠 **Quê quán:** ${data.hometown.name || 'Không có'}\n`;
-    if (data.location) result += `📍 **Địa điểm:** ${data.location.name || 'Không có'}\n`;
-    if (data.about) result += `📝 **Giới thiệu:** ${data.about}\n`;
-    if (data.bio) result += `📄 **Tiểu sử:** ${data.bio}\n`;
-    if (data.quotes) result += `💬 **Châm ngôn:** ${data.quotes}\n`;
-    if (data.website) result += `🌍 **Website:** ${data.website}\n`;
-    
-    if (data.work && data.work.length > 0) {
-        result += `\n💼 **CÔNG VIỆC:**\n`;
-        data.work.slice(0, 3).forEach(job => {
-            if (job.employer) {
-                result += `  • ${job.employer.name || ''}`;
-                if (job.position) result += ` - ${job.position.name || ''}`;
-                result += `\n`;
-            }
-        });
-    }
+    if (data.locale) result += `🌐 Ngôn ngữ: ${data.locale}\n`;
+    if (data.birthday) result += `🎂 Sinh nhật: ${data.birthday}\n`;
+    if (data.relationship_status) result += `💑 Mối quan hệ: ${data.relationship_status}\n`;
+    if (data.hometown && data.hometown.name) result += `🏠 Quê quán: ${data.hometown.name}\n`;
+    if (data.location && data.location.name) result += `📍 Địa điểm: ${data.location.name}\n`;
+    if (data.about) result += `📝 Giới thiệu: ${data.about}\n`;
+    if (data.quotes) result += `💬 Châm ngôn: ${data.quotes}\n`;
+    if (data.website) result += `🌍 Website: ${data.website}\n`;
+    if (data.link) result += `🔗 Link: ${data.link}\n`;
+    if (data.verified) result += `✅ Tài khoản xác minh: Có\n`;
     
     if (data.education && data.education.length > 0) {
-        result += `\n🎓 **HỌC VẤN:**\n`;
-        data.education.slice(0, 3).forEach(edu => {
-            if (edu.school) {
-                result += `  • ${edu.school.name || ''}`;
+        result += `\n🎓 HỌC VẤN:\n`;
+        data.education.slice(0, 5).forEach(edu => {
+            if (edu.school && edu.school.name) {
+                result += `  • ${edu.school.name}\n`;
+            }
+        });
+    }
+    
+    if (data.work && data.work.length > 0) {
+        result += `\n💼 CÔNG VIỆC:\n`;
+        data.work.slice(0, 5).forEach(job => {
+            if (job.employer && job.employer.name) {
+                result += `  • ${job.employer.name}`;
+                if (job.position && job.position.name) result += ` - ${job.position.name}`;
                 result += `\n`;
             }
         });
     }
     
-    if (data.link) result += `\n🔗 **Link:** ${data.link}\n`;
+    result += `\n──────────────────\n`;
+    result += `🤖 Bot by Hoàng Anh`;
     
     return result;
 }
 
-// ========== BOT COMMANDS ==========
+// ========== BOT COMMANDS (Giống bot.php) ==========
 
 bot.start((ctx) => {
-    ctx.replyWithMarkdown(
-        `👋 *Xin chào ${ctx.from.first_name}!*\n\n` +
-        `🤖 *Bot Kiểm Tra Thông Tin Facebook*\n\n` +
-        `📌 *Cách dùng:*\n` +
-        `• Gửi *UID* hoặc *link Facebook*\n` +
-        `• Bot sẽ trả về ảnh đại diện + thông tin công khai\n\n` +
-        `📎 *Ví dụ:*\n` +
+    ctx.reply(
+        `👋 Chào mừng ${ctx.from.first_name}!\n\n` +
+        `🔰 BOT CHECK INFO FACEBOOK\n` +
+        `──────────────────\n` +
+        `📌 Hướng dẫn sử dụng:\n` +
+        `• Gửi UID Facebook để check thông tin\n` +
+        `• Gửi link Facebook để lấy UID\n\n` +
+        `📎 Ví dụ:\n` +
         `• 1000123456789\n` +
         `• facebook.com/username\n\n` +
-        `⚡ *Lệnh:*\n` +
-        `/help - Xem hướng dẫn\n` +
-        `/check [UID/link] - Kiểm tra nhanh\n` +
-        `/avatar [UID/link] - Lấy ảnh HD\n` +
-        `/uid [link] - Lấy UID từ link`
+        `💡 Lệnh hỗ trợ:\n` +
+        `/help - Xem hướng dẫn chi tiết\n` +
+        `/token [token] - Cập nhật token Facebook\n` +
+        `/checktoken - Kiểm tra token hiện tại`
     );
 });
 
 bot.help((ctx) => {
-    ctx.replyWithMarkdown(
-        `🆘 *HƯỚNG DẪN*\n\n` +
-        `*Gửi trực tiếp:* UID hoặc link Facebook\n` +
-        `*Lệnh:* \n` +
-        `/check [UID/link] - Kiểm tra đầy đủ\n` +
-        `/avatar [UID/link] - Lấy ảnh đại diện HD\n` +
-        `/uid [link] - Chuyển link sang UID`
+    ctx.reply(
+        `📚 HƯỚNG DẪN SỬ DỤNG\n` +
+        `──────────────────\n` +
+        `1️⃣ Gửi UID (dãy số) để kiểm tra thông tin\n` +
+        `2️⃣ Gửi link Facebook để lấy UID\n\n` +
+        `🛠 Các lệnh:\n` +
+        `/start - Khởi động bot\n` +
+        `/help - Xem hướng dẫn này\n` +
+        `/token [EAAD...] - Cập nhật token Facebook\n` +
+        `/checktoken - Kiểm tra token hiện tại\n` +
+        `/uid [link] - Lấy UID từ link\n` +
+        `/check [UID/link] - Kiểm tra thông tin\n\n` +
+        `⚠️ Lưu ý: Token Facebook có thời hạn, cần cập nhật khi hết hạn`
     );
 });
 
-bot.command('check', async (ctx) => {
-    const input = ctx.message.text.replace('/check', '').trim();
+// Lệnh cập nhật token - giống chức năng ghi file tokenEAAD6V7.txt
+bot.command('token', (ctx) => {
+    const newToken = ctx.message.text.replace('/token', '').trim();
     
-    if (!input) {
-        return ctx.reply('❌ Vui lòng nhập UID hoặc link.\nVí dụ: /check 4');
+    if (!newToken) {
+        return ctx.reply('❌ Vui lòng nhập token. Ví dụ: /token EAAD6V7...');
     }
     
-    ctx.reply('⏳ Đang kiểm tra...');
-    
-    const convertResult = await convertToUid(input);
-    
-    if (convertResult.error) {
-        return ctx.reply(`❌ Lỗi chuyển đổi: ${convertResult.error}`);
+    if (!newToken.startsWith('EAA')) {
+        return ctx.reply('⚠️ Token Facebook thường bắt đầu bằng EAA... Vui lòng kiểm tra lại');
     }
     
-    const uid = convertResult.uid;
-    const info = await checkFacebookInfo(uid);
-    
-    if (info.error) {
-        return ctx.reply(`❌ Lỗi Facebook: ${info.error}`);
-    }
-    
-    const avatar = await getFacebookAvatar(uid);
-    
-    if (avatar.url) {
-        try {
-            await ctx.replyWithPhoto(avatar.url, {
-                caption: `🖼️ Ảnh đại diện của ${info.name || uid}`
-            });
-        } catch (e) {
-            // Bỏ qua lỗi ảnh
-        }
-    }
-    
-    const formattedInfo = formatUserInfo(info);
-    ctx.replyWithMarkdown(formattedInfo, { disable_web_page_preview: true });
-});
-
-bot.command('avatar', async (ctx) => {
-    const input = ctx.message.text.replace('/avatar', '').trim();
-    
-    if (!input) {
-        return ctx.reply('❌ Vui lòng nhập UID hoặc link.\nVí dụ: /avatar 4');
-    }
-    
-    ctx.reply('⏳ Đang lấy ảnh...');
-    
-    const convertResult = await convertToUid(input);
-    
-    if (convertResult.error) {
-        return ctx.reply(`❌ Lỗi: ${convertResult.error}`);
-    }
-    
-    const uid = convertResult.uid;
-    const avatar = await getFacebookAvatar(uid);
-    
-    if (avatar.error) {
-        return ctx.reply(`❌ Lỗi: ${avatar.error}`);
-    }
-    
-    if (avatar.url) {
-        await ctx.replyWithPhoto(avatar.url, {
-            caption: `✅ Ảnh đại diện HD của UID: ${uid}`
-        });
+    if (saveTokenToFile(newToken)) {
+        ctx.reply('✅ Token Facebook đã được cập nhật thành công!');
     } else {
-        ctx.reply('❌ Không tìm thấy ảnh.');
+        ctx.reply('❌ Lỗi khi lưu token. Vui lòng thử lại sau.');
     }
 });
 
+// Lệnh kiểm tra token
+bot.command('checktoken', (ctx) => {
+    const token = getTokenFromFile();
+    
+    if (!token) {
+        return ctx.reply('❌ Chưa có token Facebook. Sử dụng lệnh /token [token] để thêm.');
+    }
+    
+    // Hiển thị 10 ký tự đầu của token để bảo mật
+    const maskedToken = token.substring(0, 15) + '...' + token.substring(token.length - 5);
+    ctx.reply(`📋 Token hiện tại: ${maskedToken}\n\n💡 Dùng /token [token_moi] để cập nhật.`);
+});
+
+// Lệnh lấy UID từ link
 bot.command('uid', async (ctx) => {
     const input = ctx.message.text.replace('/uid', '').trim();
     
     if (!input) {
-        return ctx.reply('❌ Vui lòng nhập link Facebook.\nVí dụ: /uid facebook.com/zuck');
+        return ctx.reply('❌ Vui lòng nhập link Facebook. Ví dụ: /uid facebook.com/zuck');
     }
     
-    ctx.reply('⏳ Đang chuyển đổi...');
-    
-    const convertResult = await convertToUid(input);
-    
-    if (convertResult.error) {
-        return ctx.reply(`❌ Lỗi: ${convertResult.error}`);
+    const token = getTokenFromFile();
+    if (!token) {
+        return ctx.reply('❌ Chưa có token Facebook. Dùng lệnh /token [token] để thêm.');
     }
     
-    ctx.replyWithMarkdown(
-        `✅ *Chuyển đổi thành công*\n\n` +
-        `🔗 Link: ${input}\n` +
-        `🆔 UID: \`${convertResult.uid}\``
-    );
+    ctx.reply('⏳ Đang xử lý...');
+    
+    const result = await convertToUid(input, token);
+    
+    if (result.error) {
+        return ctx.reply(`❌ ${result.error}`);
+    }
+    
+    ctx.reply(`✅ UID: ${result.uid}`);
 });
 
+// Lệnh check info
+bot.command('check', async (ctx) => {
+    const input = ctx.message.text.replace('/check', '').trim();
+    
+    if (!input) {
+        return ctx.reply('❌ Vui lòng nhập UID hoặc link. Ví dụ: /check 4');
+    }
+    
+    const token = getTokenFromFile();
+    if (!token) {
+        return ctx.reply('❌ Chưa có token Facebook. Dùng lệnh /token [token] để thêm.');
+    }
+    
+    ctx.reply('⏳ Đang kiểm tra thông tin...');
+    
+    const convertResult = await convertToUid(input, token);
+    
+    if (convertResult.error) {
+        return ctx.reply(`❌ ${convertResult.error}`);
+    }
+    
+    const uid = convertResult.uid;
+    const info = await checkFacebookInfo(uid, token);
+    
+    if (info.error) {
+        return ctx.reply(`❌ ${info.error}`);
+    }
+    
+    const formattedInfo = formatUserInfo(info);
+    ctx.reply(formattedInfo);
+});
+
+// Xử lý tin nhắn thường - tự động nhận diện UID/link
 bot.on('text', async (ctx) => {
     const message = ctx.message.text.trim();
     
+    // Bỏ qua nếu là lệnh
     if (message.startsWith('/')) return;
     
-    const fbPattern = /(?:facebook|fb)\.(?:com|me)\/|^\d+$/i;
+    // Kiểm tra xem có phải UID hoặc link Facebook không
+    const isUID = /^\d+$/.test(message);
+    const isFBLink = /(?:facebook|fb)\.(?:com|me)\//i.test(message);
     
-    if (fbPattern.test(message)) {
-        ctx.reply('⏳ Đang xử lý...');
+    if (isUID || isFBLink) {
+        const token = getTokenFromFile();
         
-        const convertResult = await convertToUid(message);
+        if (!token) {
+            return ctx.reply('❌ Chưa có token Facebook. Dùng lệnh /token [token] để thêm.');
+        }
+        
+        ctx.reply('⏳ Đang kiểm tra thông tin...');
+        
+        const convertResult = await convertToUid(message, token);
         
         if (convertResult.error) {
-            return ctx.reply(`❌ Lỗi: ${convertResult.error}`);
+            return ctx.reply(`❌ ${convertResult.error}`);
         }
         
         const uid = convertResult.uid;
-        const info = await checkFacebookInfo(uid);
+        const info = await checkFacebookInfo(uid, token);
         
         if (info.error) {
-            return ctx.reply(`❌ Lỗi: ${info.error}`);
-        }
-        
-        const avatar = await getFacebookAvatar(uid);
-        
-        if (avatar.url) {
-            try {
-                await ctx.replyWithPhoto(avatar.url, {
-                    caption: `🖼️ Ảnh đại diện của ${info.name || uid}`
-                });
-            } catch (e) {}
+            return ctx.reply(`❌ ${info.error}`);
         }
         
         const formattedInfo = formatUserInfo(info);
-        await ctx.replyWithMarkdown(formattedInfo, { disable_web_page_preview: true });
+        ctx.reply(formattedInfo);
     }
 });
 
@@ -345,6 +367,6 @@ exports.handler = async (event, context) => {
     
     return {
         statusCode: 200,
-        body: 'Bot Telegram Facebook Info đang hoạt động!'
+        body: 'Bot Telegram Facebook Info -  '
     };
 };
