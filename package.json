@@ -1,0 +1,16 @@
+{
+  "name": "telegram-facebook-bot-netlify",
+  "version": "1.0.0",
+  "description": "Bot Telegram check info Facebook - Netlify",
+  "main": "index.js",
+  "scripts": {
+    "start": "netlify dev"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0",
+    "telegraf": "^4.15.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
