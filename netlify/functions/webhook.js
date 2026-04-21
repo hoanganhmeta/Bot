@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 
 // ========== CẤU HÌNH - SỬA 2 DÒNG NÀY ==========
 const BOT_TOKEN = '8457659379:AAHP3K3owb_yl6hQTk7y9cQBJgH2gv9u_U8';
-const FB_ACCESS_TOKEN = 'DÁN_TOKEN_FACEBOOK_EAAD6V7_CỦA_BẠN_VÀO_ĐÂY';
+const FB_ACCESS_TOKEN = 'EAAGNO4a7r2wBRWxD8C3paI78P4c6ZATqZBAryFVZC3guMXaLqznc23cbyYJZBl6DX6312ZAzhgGjCojRLzKOX6hcKPERuzQqdQ6mnONkf7JAsz9vZBdwCqP2zlAXN9eDkCUChZB1J0gQW6K1aR8CiNoTZCPn5lLRu5Qte0AGNdSEZBni9hjV98NYPo35UjPm01ZAlqGAZDZD';
 // ==============================================
 
 const bot = new Telegraf(BOT_TOKEN);
