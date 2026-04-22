@@ -1,16 +1,13 @@
 {
-  "name": "telegram-facebook-bot-netlify",
+  "name": "fb-checker-bot",
   "version": "1.0.0",
-  "description": "Bot Telegram check info Facebook - Netlify",
+  "description": "Bot Telegram check info Facebook",
   "main": "index.js",
-  "scripts": {
-    "start": "netlify dev"
-  },
   "dependencies": {
-    "node-fetch": "^2.7.0",
-    "telegraf": "^4.15.3"
+    "telegraf": "^4.15.3",
+    "axios": "^1.6.8"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18"
   }
 }
