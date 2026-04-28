@@ -1,13 +1,8 @@
 {
-  "name": "fb-checker-bot",
+  "name": "tele-sms-bot",
   "version": "1.0.0",
-  "description": "Bot Telegram check info Facebook",
-  "main": "index.js",
   "dependencies": {
-    "telegraf": "^4.15.3",
-    "axios": "^1.6.8"
-  },
-  "engines": {
-    "node": ">=18"
+    "node-fetch": "^3.0.0",
+    "telegraf": "^4.0.0"
   }
 }
