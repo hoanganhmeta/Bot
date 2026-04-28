@@ -6,7 +6,7 @@ import { Telegraf } from 'telegraf';
 // ============================================
 // 1. CẤU HÌNH BOT
 // ============================================
-const BOT_TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'; // <<<< THAY BẰNG TOKEN THẬT
+const BOT_TOKEN = '8624782345:AAHjhUAwov-IDPsIXkiX2V10U8GcFqE0C-E'; // <<<< THAY BẰNG TOKEN THẬT
 const bot = new Telegraf(BOT_TOKEN);
 
 // ============================================
@@ -532,7 +532,7 @@ bot.start((ctx) => {
         '  • /stop - Dừng tấn công ngay lập tức\n' +
         '  • /status - Kiểm tra trạng thái bot\n\n' +
         '📱 *Ví dụ:* /sms 0912345678 5\n\n' +
-        '⚠️ Số lần tối đa: 10 (giới hạn Vercel 10s)\n' +
+        '⚠️ Số lần tối đa: 10 (giới hạn  10s)\n' +
         '🛑 Dùng /stop để dừng giữa chừng',
         { parse_mode: 'Markdown' }
     );
