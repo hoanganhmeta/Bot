@@ -6,7 +6,7 @@ import { Telegraf } from 'telegraf';
 // ============================================
 // 1. CẤU HÌNH BOT
 // ============================================
-const BOT_TOKEN = '8624782345:AAHwuiNi8_szCFO5uZ-Z32PVZSCkNN26rPA'; // <<<< THAY BẰNG TOKEN THẬT
+const BOT_TOKEN = '8624782345:AAHjhUAwov-IDPsIXkiX2V10U8GcFqE0C-E'; // <<<< THAY BẰNG TOKEN THẬT
 const bot = new Telegraf(BOT_TOKEN);
 
 // ============================================
