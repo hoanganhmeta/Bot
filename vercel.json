@@ -1,6 +1,9 @@
 {
   "functions": {
-    "api/sms.js": {
+    "api/spam.py": {
+      "maxDuration": 10
+    },
+    "api/bot.py": {
       "maxDuration": 10
     }
   }
