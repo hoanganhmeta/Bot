@@ -5,8 +5,8 @@ import re
 import requests
 import os
 
-BOT_TOKEN = '6393252222:AAEWYuwEUdVj7jN0AnhUzO5TPm9E0cOQPjo'
-ADMIN_ID = '6452283369'
+BOT_TOKEN = '7884631997:AAEVPMrLWmMfGZ3ZunEAjdfQh2G0Osf8MDM'
+ADMIN_ID = '7211752234'
 
 def TimeStamp():
     return str(datetime.date.today())
