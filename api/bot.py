@@ -25,8 +25,7 @@ def send_telegram(chat_id, text):
 def call_spam_api(phone, amount):
     """Gọi API spam từ chính Vercel"""
     try:
-        domain = os.environ.get('VERCEL_URL', 'bot-beta-seven-90.vercel.app')
-        url = f'https://{domain}/api/spam?phone={phone}&amount={amount}'
+        url = f'https://bot-6tdh.vercel.app/api/spam?phone={phone}&amount={amount}'
         requests.get(url, timeout=5)
         return True
     except:
@@ -52,7 +51,6 @@ class handler(BaseHTTPRequestHandler):
             self.end_headers()
             return
 
-        # Xử lý tin nhắn
         if 'message' in update:
             message = update['message']
             chat_id = message['chat']['id']
@@ -62,7 +60,6 @@ class handler(BaseHTTPRequestHandler):
 
             response_text = ""
 
-            # ====== LỆNH /start ======
             if text == '/start':
                 response_text = f'''👋 Chào {first_name}!
 🤖 Chào mừng đến với SMS Bot!
@@ -74,7 +71,6 @@ class handler(BaseHTTPRequestHandler):
 
 ⚠️ Số lần spam tối đa: 10 lần/lượt'''
 
-            # ====== LỆNH /help ======
             elif text == '/help':
                 response_text = '''📋 DANH SÁCH LỆNH:
 ━━━━━━━━━━━━━━━━━
@@ -84,7 +80,6 @@ class handler(BaseHTTPRequestHandler):
 ━━━━━━━━━━━━━━━━━
 📌 Ví dụ: /spam 0987654321 5'''
 
-            # ====== LỆNH /admin ======
             elif text == '/admin':
                 response_text = '''👤 THÔNG TIN ADMIN:
 ━━━━━━━━━━━━━━━━━
@@ -93,7 +88,6 @@ class handler(BaseHTTPRequestHandler):
 🌐 Web: https://linkbio.co/sharetool
 ━━━━━━━━━━━━━━━━━'''
 
-            # ====== LỆNH /spam ======
             elif text.startswith('/spam'):
                 parts = text.split()
                 
@@ -103,18 +97,15 @@ class handler(BaseHTTPRequestHandler):
                     phone = parts[1]
                     lap = parts[2]
 
-                    # Kiểm tra số lần spam
                     if not lap.isnumeric():
                         response_text = '❌ Số lần spam phải là số!'
                     elif int(lap) > 10:
-                        response_text = '❌ Tối đa 10 lần/lượt để tránh quá tải!'
+                        response_text = '❌ Tối đa 10 lần/lượt!'
                     elif int(lap) < 1:
                         response_text = '❌ Số lần spam phải lớn hơn 0!'
-                    # Kiểm tra định dạng SĐT Việt Nam
                     elif not re.search(r"^(0?)(3[2-9]|5[6|8|9]|7[0|6-9]|8[0-6|8|9]|9[0-4|6-9])[0-9]{7}$", phone):
                         response_text = '❌ Số điện thoại không hợp lệ!'
                     else:
-                        # Gọi API spam
                         success = call_spam_api(phone, lap)
                         if success:
                             response_text = f'''✅ SPAM THÀNH CÔNG!
@@ -130,16 +121,12 @@ class handler(BaseHTTPRequestHandler):
 🔄 Số lần: {lap}
 (Vui lòng đợi vài giây...)'''
 
-            # ====== TIN NHẮN KHÁC ======
             else:
-                response_text = f'''🤖 Bot đang hoạt động!
-Gõ /help để xem danh sách lệnh.'''
+                response_text = '🤖 Gõ /help để xem danh sách lệnh!'
 
-            # Gửi phản hồi
             if response_text:
                 send_telegram(chat_id, response_text)
 
-        # Trả về 200 OK cho Telegram
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.end_headers()
