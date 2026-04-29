@@ -1,40 +1,63 @@
-// api/sms.js
-// Bot Telegram SMS Bomber V6 - TỐI ƯU TỐC ĐỘ + CHỐNG TRÙNG
+from http.server import BaseHTTPRequestHandler
+import json
+import time
+from concurrent.futures import ThreadPoolExecutor
+import requests
 
-import { Telegraf } from 'telegraf';
+# Giới hạn worker cho Vercel (serverless có hạn chế tài nguyên)
+threading = ThreadPoolExecutor(max_workers=20)
 
-// ============================================
-// 1. CẤU HÌNH BOT
-// ============================================
-const BOT_TOKEN = '8624782345:AAHjhUAwov-IDPsIXkiX2V10U8GcFqE0C-E'; // <<<< THAY BẰNG TOKEN THẬT
-const bot = new Telegraf(BOT_TOKEN);
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        # Lấy tham số từ URL: /api/spam?phone=0987654321&amount=10
+        from urllib.parse import urlparse, parse_qs
+        parsed = urlparse(self.path)
+        params = parse_qs(parsed.query)
+        
+        phone = params.get('phone', [''])[0]
+        amount = int(params.get('amount', ['1'])[0])
+        
+        # Giới hạn amount để tránh quá tải
+        if amount > 10:
+            amount = 10
+        
+        if not phone:
+            self.send_response(400)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "Thiếu số điện thoại"}).encode())
+            return
+        
+        # Chạy spam
+        results = []
+        for i in range(amount):
+            threading.submit(popeyes, phone)
+            threading.submit(alfrescos, phone)
+            # ... (giữ nguyên tất cả các hàm gọi API của bạn)
+            time.sleep(0.5)
+        
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps({
+            "status": "success",
+            "phone": phone,
+            "amount": amount
+        }).encode())
 
-// ============================================
-// 2. BIẾN TOÀN CỤC
-// ============================================
-const activeAttacks = new Map();
-const processedMessages = new Set(); // Chống xử lý trùng tin nhắn
-const tokenCache = {}; // Cache token để không phải lấy lại mỗi lần
+# GIỮ NGUYÊN TẤT CẢ CÁC HÀM API CỦA BẠN Ở ĐÂY
+# popeyes, alfrescos, bibabo, tv360, fpt, vayvnd, tamo, meta, gapo...
+# (Copy toàn bộ các hàm def từ code gốc vào đây)
 
-// Xóa tin nhắn đã xử lý sau 5 phút để tránh tràn bộ nhớ
-setInterval(() => {
-    if (processedMessages.size > 1000) processedMessages.clear();
-}, 300000);
+def popeyes(sdt):
+    # Giữ nguyên code
+    pass
 
-// ============================================
-// 3. HÀM GỌI API CHUNG
-// ============================================
-async function callApi(url, options = {}) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
-    try {
-        const response = await fetch(url, { ...options, signal: controller.signal, redirect: 'follow' });
-        clearTimeout(timeout);
-        return response;
-    } catch (error) {
-        clearTimeout(timeout);
-        return null;
-    }
+def alfrescos(sdt):
+    # Giữ nguyên code
+    pass
+
+# ... (tất cả các hàm còn lại giữ nguyên)    }
 }
 
 // ============================================
