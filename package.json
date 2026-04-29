@@ -1,8 +1,11 @@
 {
-  "name": "tele-sms-bot",
+  "name": "sms-spam-bot",
   "version": "1.0.0",
-  "dependencies": {
-    "node-fetch": "^3.0.0",
-    "telegraf": "^4.0.0"
-  }
+  "description": "SMS Spam Tool",
+  "scripts": {
+    "dev": "python3 api/spam.py"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }
