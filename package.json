@@ -1,11 +1,7 @@
 {
   "name": "sms-spam-bot",
   "version": "1.0.0",
-  "description": "SMS Spam Tool",
   "scripts": {
-    "dev": "python3 api/spam.py"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+    "build": "pip install -r requirements.txt"
+  }
 }
