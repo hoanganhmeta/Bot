@@ -1,10 +1,12 @@
 {
   "functions": {
-    "api/spam.py": {
-      "maxDuration": 10
-    },
     "api/bot.py": {
-      "maxDuration": 10
+      "maxDuration": 10,
+      "memory": 128
+    },
+    "api/spam.py": {
+      "maxDuration": 10,
+      "memory": 128
     }
   }
 }
