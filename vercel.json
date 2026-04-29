@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/bot.py": {
+      "maxDuration": 10
+    },
+    "api/spam.py": {
+      "maxDuration": 10
+    }
+  }
+}
