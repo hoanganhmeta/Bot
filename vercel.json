@@ -1,9 +1,7 @@
 {
   "functions": {
-    "api/bot.py": {
-      "maxDuration": 10
-    },
-    "api/spam.py": {
+    "api/index.py": {
+      "runtime": "python3.9",
       "maxDuration": 10
     }
   }
